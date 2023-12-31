@@ -105,3 +105,5 @@ impl From<ParseIntError> for UIDLError {
         }
     }
 }
+
+impl_err_with_from_str!(TopError);

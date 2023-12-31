@@ -132,6 +132,13 @@ impl TryFrom<String> for UIDLItem {
     }
 }
 
+#[derive(Debug)]
+pub struct TopResponse {
+    pub message_id: i32,
+    pub number_of_lines: i32,
+    pub data: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

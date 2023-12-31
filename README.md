@@ -7,6 +7,14 @@ It also offers some convenience methods.
 
 Performance is about the same as that of the other projects mentioned below.
 
+## Installation
+
+...
+
+## Examples
+
+...
+
 ## Original RFC
 
 https://www.ietf.org/rfc/rfc1939.txt
@@ -14,12 +22,17 @@ https://www.ietf.org/rfc/rfc1939.txt
 ## Implemented
 
 - stat
-- list (list and list_id)
-- retr (retrieve)
-- rset (reset)
-- dele (delete)
-- uidl (uidl and uidl_with_id)
+- list (`list` and `list_id`)
+- retr (`retrieve`)
+- rset (`reset`)
+- dele (`delete`)
+- uidl (`uidl` and `uidl_with_id`)
 - noop
+- top
+
+## Not implemented
+
+- apop
 
 ## Similar projects
 
@@ -28,7 +41,6 @@ https://www.ietf.org/rfc/rfc1939.txt
 
 ## TODO
 
-- top, apop
-- convenience methods, like last 10 mails
+- convenience methods, like last x mails
 - documentation
 - error to combine all errors

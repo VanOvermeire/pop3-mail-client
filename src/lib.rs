@@ -7,9 +7,9 @@ use std::sync::Arc;
 
 use rustls::{ClientConnection, StreamOwned};
 use reader::read_response;
-use crate::errors::{ConnectionError, DeleteError, ListError, LoginError, NoopError, ResetError, RetrieveError, StatError, UIDLError};
+use crate::errors::{ConnectionError, DeleteError, ListError, LoginError, NoopError, ResetError, RetrieveError, StatError, TopError, UIDLError};
 use crate::reader::{read_multi_response};
-use crate::responses::{ListResponse, RetrieveResponse, StatResponse, UIDLItem, UIDLResponse};
+use crate::responses::{ListResponse, RetrieveResponse, StatResponse, TopResponse, UIDLItem, UIDLResponse};
 
 use crate::client_config::create_rustls_config;
 
@@ -114,6 +114,16 @@ impl Pop3Client<Pop3TransactionState> {
         self.invoke(&format!("UIDL {message_id}"))?;
         let response = self.read_response()?;
         Ok(response.try_into()?)
+    }
+
+    pub fn top(&mut self, message_id: i32, number_of_lines: i32) -> Result<TopResponse, TopError> {
+        self.invoke(&format!("TOP {message_id} {number_of_lines}"))?;
+        let response = self.read_multi_response()?;
+        Ok(TopResponse {
+            message_id,
+            number_of_lines,
+            data: response,
+        })
     }
 }
 
