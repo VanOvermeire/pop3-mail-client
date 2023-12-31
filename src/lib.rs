@@ -7,9 +7,9 @@ use std::sync::Arc;
 
 use rustls::{ClientConnection, StreamOwned};
 use reader::read_response;
-use crate::errors::{ConnectionError, DeleteError, ListError, LoginError, NoopError, ResetError, RetrieveError, StatError};
+use crate::errors::{ConnectionError, DeleteError, ListError, LoginError, NoopError, ResetError, RetrieveError, StatError, UIDLError};
 use crate::reader::{read_multi_response};
-use crate::responses::{ListResponse, RetrieveResponse, StatResponse};
+use crate::responses::{ListResponse, RetrieveResponse, StatResponse, UIDLItem, UIDLResponse};
 
 use crate::client_config::create_rustls_config;
 
@@ -70,7 +70,7 @@ impl Pop3Client<Pop3TransactionState> {
         Ok(response.try_into()?)
     }
 
-    pub fn list_with_id(&mut self, message_id: i32) -> Result<ListResponse, ListError> {
+    pub fn list_id(&mut self, message_id: i32) -> Result<ListResponse, ListError> {
         self.invoke(&format!("LIST {message_id}"))?;
         let response = self.read_response()?;
         Ok(response.try_into()?)
@@ -102,6 +102,18 @@ impl Pop3Client<Pop3TransactionState> {
         self.invoke("NOOP")?;
         self.read_response()?;
         Ok(())
+    }
+
+    pub fn uidl(&mut self) -> Result<UIDLResponse, UIDLError> {
+        self.invoke("UIDL")?;
+        let response = self.read_multi_response()?;
+        Ok(response.try_into()?)
+    }
+
+    pub fn uidl_with_id(&mut self, message_id: i32) -> Result<UIDLItem, UIDLError> {
+        self.invoke(&format!("UIDL {message_id}"))?;
+        let response = self.read_response()?;
+        Ok(response.try_into()?)
     }
 }
 
@@ -161,6 +173,13 @@ impl Pop3Connection<'_> {
     pub fn outlook() -> Pop3Connection<'static> {
         Pop3Connection {
             host: "outlook.office365.com",
+            port: 995,
+        }
+    }
+
+    pub fn gmail() -> Pop3Connection<'static> {
+        Pop3Connection {
+            host: "pop.gmail.com",
             port: 995,
         }
     }

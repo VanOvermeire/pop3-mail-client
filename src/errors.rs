@@ -88,24 +88,6 @@ impl From<ParseIntError> for ListError {
     }
 }
 
-impl From<ItemError> for ListError {
-    fn from(value: ItemError) -> Self {
-        ListError {
-            message: value.message
-        }
-    }
-}
-
-impl_err!(ItemError);
-
-impl From<ParseIntError> for ItemError {
-    fn from(value: ParseIntError) -> Self {
-        ItemError {
-            message: format!("could not parse stat response as numbers: {}", value.to_string()),
-        }
-    }
-}
-
 impl_err_with_from_str!(RetrieveError);
 
 impl_err_with_from_str!(ResetError);
@@ -113,3 +95,13 @@ impl_err_with_from_str!(ResetError);
 impl_err_with_from_str!(DeleteError);
 
 impl_err_with_from_str!(NoopError);
+
+impl_err_with_from_str!(UIDLError);
+
+impl From<ParseIntError> for UIDLError {
+    fn from(value: ParseIntError) -> Self {
+        UIDLError {
+            message: format!("could not parse UIDL message id as a number: {}", value.to_string()),
+        }
+    }
+}

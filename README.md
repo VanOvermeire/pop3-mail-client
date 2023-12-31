@@ -7,22 +7,19 @@ It also offers some convenience methods.
 
 Performance is about the same as that of the other projects mentioned below.
 
-## Implemented
-
-- stat
-- list
-- retr (retrieve)
-- rset (reset)
-- dele (delete)
-- noop
-
-## Not implemented
-
-- update, which could potentially remove messages, so seemed safer not to add this without a use case for it
-
 ## Original RFC
 
 https://www.ietf.org/rfc/rfc1939.txt
+
+## Implemented
+
+- stat
+- list (list and list_id)
+- retr (retrieve)
+- rset (reset)
+- dele (delete)
+- uidl (uidl and uidl_with_id)
+- noop
 
 ## Similar projects
 
@@ -31,9 +28,7 @@ https://www.ietf.org/rfc/rfc1939.txt
 
 ## TODO
 
-- top, uidl, apop
+- top, apop
 - convenience methods, like last 10 mails
 - documentation
 - error to combine all errors
-- github actions setup
-
