@@ -10,14 +10,14 @@ use reader::read_response;
 use crate::client_config::create_rustls_config;
 use crate::errors::{ConnectionError, DeleteError, ListError, NoopError, ResetError, RetrieveError, StatError, TopError, UIDLError};
 use crate::reader::read_multi_response;
-use crate::responses::{ListResponse, RetrieveResponse, StatResponse, TopResponse, UIDLItem, UIDLResponse};
+use crate::responses::{ItemResponse, ListResponse, RetrieveResponse, StatResponse, TopResponse, UIDLItem, UIDLResponse};
 
 mod client_config;
 mod reader;
 mod errors;
 mod responses;
 
-
+/// The Pop3Client allows you to connect to a POP3 server and perform actions on it
 pub struct Pop3Client {
     stream: StreamOwned<ClientConnection, TcpStream>,
 }
@@ -29,6 +29,7 @@ impl Drop for Pop3Client {
 }
 
 impl Pop3Client {
+    /// Create the Pop3Client builder which will set up the Pop3Client
     pub fn builder() -> Pop3ClientBuilder<Pop3ClientBuilderCredsUsername> {
         Pop3ClientBuilder {
             host: None,
@@ -39,25 +40,28 @@ impl Pop3Client {
         }
     }
 
+    /// Stat requests the number of messages and size in the inbox
     pub fn stat(&mut self) -> Result<StatResponse, StatError> {
         self.invoke("STAT")?;
         let response = self.read_response()?;
         Ok(response.try_into()?)
     }
 
+    /// List generates a list of all message ids, with sizes
     pub fn list(&mut self) -> Result<ListResponse, ListError> {
         self.invoke("LIST")?;
         let response = self.read_multi_response()?;
         Ok(response.try_into()?)
     }
 
-    pub fn list_id(&mut self, message_id: i32) -> Result<ListResponse, ListError> {
+    /// List with a given message_id will return the id and size for that message_Id
+    pub fn list_id(&mut self, message_id: i32) -> Result<ItemResponse, ListError> {
         self.invoke(&format!("LIST {message_id}"))?;
         let response = self.read_response()?;
         Ok(response.try_into()?)
     }
 
-    // TODO also retrieve using a &mut impl Write
+    /// Retrieve as string retrieves the content of the message as a string
     pub fn retrieve_as_string(&mut self, message_id: i32) -> Result<RetrieveResponse, RetrieveError> {
         self.invoke(&format!("RETR {message_id}"))?;
         let response = self.read_multi_response()?;
@@ -67,36 +71,50 @@ impl Pop3Client {
         })
     }
 
+    /// Retrieve the content of the message and pass it into a writer
+    pub fn retrieve(&mut self, message_id: i32, writer: &mut impl Write) -> Result<(), RetrieveError> {
+        self.invoke(&format!("RETR {message_id}"))?;
+        let response = self.read_multi_response()?;
+        writer.write(response.as_bytes())?;
+        Ok(())
+    }
+
+    /// Reset unmarks all messages that were set as deleted
     pub fn reset(&mut self) -> Result<(), ResetError> {
         self.invoke("RSET")?;
         self.read_response()?;
         Ok(())
     }
 
+    /// Delete marks a given message, by its message_id, as deleted
     pub fn delete(&mut self, message_id: i32) -> Result<(), DeleteError> {
         self.invoke(&format!("DELE {message_id}"))?;
         self.read_response()?;
         Ok(())
     }
 
+    /// Noop is a no-op, which returns nothing. Can be used to test the connection
     pub fn noop(&mut self) -> Result<(), NoopError> {
         self.invoke("NOOP")?;
         self.read_response()?;
         Ok(())
     }
 
+    /// UIDL generates a list of all message ids plus their unique ids
     pub fn uidl(&mut self) -> Result<UIDLResponse, UIDLError> {
         self.invoke("UIDL")?;
         let response = self.read_multi_response()?;
         Ok(response.try_into()?)
     }
 
+    /// UIDL with a given message_id will return the message_id and its unique id
     pub fn uidl_with_id(&mut self, message_id: i32) -> Result<UIDLItem, UIDLError> {
         self.invoke(&format!("UIDL {message_id}"))?;
         let response = self.read_response()?;
         Ok(response.try_into()?)
     }
 
+    /// Top retrieves the number_of_lines of the message (chosen by its message_id)
     pub fn top(&mut self, message_id: i32, number_of_lines: i32) -> Result<TopResponse, TopError> {
         self.invoke(&format!("TOP {message_id} {number_of_lines}"))?;
         let response = self.read_multi_response()?;
@@ -130,6 +148,7 @@ impl Pop3ClientBuilderState for Pop3ClientBuilderCredsUsername {}
 impl Pop3ClientBuilderState for Pop3ClientBuilderCredsPassword {}
 impl Pop3ClientBuilderState for Pop3ClientBuilderConnect {}
 
+/// The builder for the POP3 client
 pub struct Pop3ClientBuilder<T: Pop3ClientBuilderState> {
     host: Option<String>,
     port: Option<u16>,
@@ -139,6 +158,7 @@ pub struct Pop3ClientBuilder<T: Pop3ClientBuilderState> {
 }
 
 impl Pop3ClientBuilder<Pop3ClientBuilderCredsUsername> {
+    /// Set the username for the POP3 client connection
     pub fn username(self, user: &str) -> Pop3ClientBuilder<Pop3ClientBuilderCredsPassword> {
         Pop3ClientBuilder {
             host: self.host,
@@ -149,6 +169,8 @@ impl Pop3ClientBuilder<Pop3ClientBuilderCredsUsername> {
         }
     }
 
+    /// If you do not have a username and password, use this method to acknowledge that, allowing you to
+    /// connect to the server without credentials
     pub fn no_login(self) -> Pop3ClientBuilder<Pop3ClientBuilderConnect> {
         Pop3ClientBuilder {
             host: self.host,
@@ -161,6 +183,7 @@ impl Pop3ClientBuilder<Pop3ClientBuilderCredsUsername> {
 }
 
 impl Pop3ClientBuilder<Pop3ClientBuilderCredsPassword> {
+    /// Set the password for the POP3 client connection
     pub fn password(self, password: &str) -> Pop3ClientBuilder<Pop3ClientBuilderConnect> {
         Pop3ClientBuilder {
             host: self.host,
@@ -173,6 +196,7 @@ impl Pop3ClientBuilder<Pop3ClientBuilderCredsPassword> {
 }
 
 impl Pop3ClientBuilder<Pop3ClientBuilderConnect> {
+    /// Connect to the POP3 server using the details specified in Pop3Connection
     pub fn connect(self, Pop3Connection { host, port }: Pop3Connection) -> Result<Pop3Client, ConnectionError> {
         let config = create_rustls_config()?;
         let server_name = host.to_string().try_into()?;
@@ -198,16 +222,19 @@ impl Pop3ClientBuilder<Pop3ClientBuilderConnect> {
     }
 }
 
+/// The connection details of the POP3 server
 pub struct Pop3Connection<'a> {
     host: &'a str,
     port: u16,
 }
 
 impl Pop3Connection<'_> {
+    /// Create a new Pop3Connection with the given host and port
     pub fn new(host: &str, port: u16) -> Pop3Connection {
         Pop3Connection { host, port }
     }
 
+    /// Create a new Pop3Connection with the host and port of (Microsoft) Outlook
     pub fn outlook() -> Pop3Connection<'static> {
         Pop3Connection {
             host: "outlook.office365.com",
@@ -215,6 +242,7 @@ impl Pop3Connection<'_> {
         }
     }
 
+    /// Create a new Pop3Connection with the host and port of (Google) Gmail
     pub fn gmail() -> Pop3Connection<'static> {
         Pop3Connection {
             host: "pop.gmail.com",

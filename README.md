@@ -5,7 +5,7 @@ One of many Pop3 clients for Rust.
 This one differs from others in some additional safeties (can't compile when you've not connected and/or logged in yet) using type-state.
 It also offers some convenience methods.
 
-Performance is about the same as that of the other projects mentioned below.
+Despite this (and based on very limited testing), performance is about the same as that of the other projects mentioned below.
 
 ## Installation
 
@@ -41,6 +41,5 @@ https://www.ietf.org/rfc/rfc1939.txt
 
 ## TODO
 
-- convenience methods, like last x mails
-- documentation
+- convenience methods, like last mail, last x mail ids
 - error to combine all errors

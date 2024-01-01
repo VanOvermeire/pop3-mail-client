@@ -88,6 +88,14 @@ impl From<ParseIntError> for ListError {
 
 impl_err_with_from_str!(RetrieveError);
 
+impl From<std::io::Error> for RetrieveError {
+    fn from(value: std::io::Error) -> Self {
+        RetrieveError {
+            message: format!("could not retrieve message: {}", value.to_string()),
+        }
+    }
+}
+
 impl_err_with_from_str!(ResetError);
 
 impl_err_with_from_str!(DeleteError);
