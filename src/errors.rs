@@ -5,6 +5,8 @@ use std::num::ParseIntError;
 
 use rustls::pki_types::InvalidDnsNameError;
 
+// helpers //
+
 macro_rules! impl_err {
     ($err:ident) => {
         #[derive(Debug)]
@@ -39,6 +41,61 @@ macro_rules! impl_err_with_from_str {
         implement_from_string!($err);
     };
 }
+
+macro_rules! implement_pop3_from {
+    ($err: ident) => {
+        impl From<$err> for Pop3Error {
+            fn from(value: $err) -> Self {
+                Pop3Error::$err(value)
+            }
+        }
+    };
+}
+
+// error that can be used everywhere //
+
+#[derive(Debug)]
+pub enum Pop3Error {
+    ConnectionError(ConnectionError),
+    StatError(StatError),
+    ListError(ListError),
+    RetrieveError(RetrieveError),
+    DeleteError(DeleteError),
+    ResetError(ResetError),
+    NoopError(NoopError),
+    TopError(TopError),
+    UIDLError(UIDLError),
+}
+
+impl Display for Pop3Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Pop3Error::ConnectionError(err) => f.write_str(&format!("ConnectionError: {}", err.message)),
+            Pop3Error::StatError(err) => f.write_str(&format!("StatError: {}", err.message)),
+            Pop3Error::ListError(err) => f.write_str(&format!("ListError: {}", err.message)),
+            Pop3Error::RetrieveError(err) => f.write_str(&format!("RetrieveError: {}", err.message)),
+            Pop3Error::DeleteError(err) => f.write_str(&format!("DeleteError: {}", err.message)),
+            Pop3Error::ResetError(err) => f.write_str(&format!("ResetError: {}", err.message)),
+            Pop3Error::NoopError(err) => f.write_str(&format!("NoopError: {}", err.message)),
+            Pop3Error::TopError(err) => f.write_str(&format!("TopError: {}", err.message)),
+            Pop3Error::UIDLError(err) => f.write_str(&format!("UIDLError: {}", err.message)),
+        }
+    }
+}
+
+impl Error for Pop3Error {}
+
+implement_pop3_from!(ConnectionError);
+implement_pop3_from!(StatError);
+implement_pop3_from!(ListError);
+implement_pop3_from!(RetrieveError);
+implement_pop3_from!(DeleteError);
+implement_pop3_from!(ResetError);
+implement_pop3_from!(NoopError);
+implement_pop3_from!(TopError);
+implement_pop3_from!(UIDLError);
+
+// specific errors //
 
 impl_err_with_from_str!(ConnectionError);
 

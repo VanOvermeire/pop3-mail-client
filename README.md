@@ -42,4 +42,4 @@ https://www.ietf.org/rfc/rfc1939.txt
 ## TODO
 
 - convenience methods, like last mail, last x mail ids
-- error to combine all errors
+- move everything from lib.rs to separate files and re-export

@@ -8,7 +8,6 @@ use rustls::{ClientConnection, StreamOwned};
 use reader::read_response;
 
 use crate::client_config::create_rustls_config;
-use crate::errors::{ConnectionError, DeleteError, ListError, NoopError, ResetError, RetrieveError, StatError, TopError, UIDLError};
 use crate::reader::read_multi_response;
 use crate::responses::{ItemResponse, ListResponse, RetrieveResponse, StatResponse, TopResponse, UIDLItem, UIDLResponse};
 
@@ -16,6 +15,8 @@ mod client_config;
 mod reader;
 mod errors;
 mod responses;
+
+pub use errors::*;
 
 /// The Pop3Client allows you to connect to a POP3 server and perform actions on it
 pub struct Pop3Client {
