@@ -1,63 +1,44 @@
-use std::io::{Write};
+use std::io::Write;
 use std::marker::PhantomData;
-use std::mem;
-use std::mem::{ManuallyDrop, MaybeUninit};
 use std::net::TcpStream;
 use std::sync::Arc;
 
 use rustls::{ClientConnection, StreamOwned};
+
 use reader::read_response;
-use crate::errors::{ConnectionError, DeleteError, ListError, LoginError, NoopError, ResetError, RetrieveError, StatError, TopError, UIDLError};
-use crate::reader::{read_multi_response};
-use crate::responses::{ListResponse, RetrieveResponse, StatResponse, TopResponse, UIDLItem, UIDLResponse};
 
 use crate::client_config::create_rustls_config;
+use crate::errors::{ConnectionError, DeleteError, ListError, NoopError, ResetError, RetrieveError, StatError, TopError, UIDLError};
+use crate::reader::read_multi_response;
+use crate::responses::{ListResponse, RetrieveResponse, StatResponse, TopResponse, UIDLItem, UIDLResponse};
 
 mod client_config;
 mod reader;
 mod errors;
 mod responses;
 
-pub trait Pop3ClientState {}
 
-pub struct Pop3ConnectingState;
-
-pub struct Pop3AuthorizationState;
-
-pub struct Pop3TransactionState;
-
-impl Pop3ClientState for Pop3ConnectingState {}
-
-impl Pop3ClientState for Pop3AuthorizationState {}
-
-impl Pop3ClientState for Pop3TransactionState {}
-
-pub struct Pop3Client<T: Pop3ClientState> {
+pub struct Pop3Client {
     stream: StreamOwned<ClientConnection, TcpStream>,
-    type_state: PhantomData<T>,
 }
 
-impl<T: Pop3ClientState> Drop for Pop3Client<T> {
+impl Drop for Pop3Client {
     fn drop(&mut self) {
         let _ = self.invoke("QUIT");
     }
 }
 
-impl<T: Pop3ClientState> Pop3Client<T> {
-    fn invoke(&mut self, command: &str) -> Result<usize, String> {
-        Ok(self.stream.write(format!("{command}\r\n").as_bytes()).map_err(|err| err.to_string())?)
+impl Pop3Client {
+    pub fn builder() -> Pop3ClientBuilder<Pop3ClientBuilderCredsUsername> {
+        Pop3ClientBuilder {
+            host: None,
+            port: None,
+            username: None,
+            password: None,
+            type_state: Default::default(),
+        }
     }
 
-    fn read_response(&mut self) -> Result<String, String> {
-        read_response(&mut self.stream)
-    }
-
-    fn read_multi_response(&mut self) -> Result<String, String> {
-        read_multi_response(&mut self.stream)
-    }
-}
-
-impl Pop3Client<Pop3TransactionState> {
     pub fn stat(&mut self) -> Result<StatResponse, StatError> {
         self.invoke("STAT")?;
         let response = self.read_response()?;
@@ -125,48 +106,95 @@ impl Pop3Client<Pop3TransactionState> {
             data: response,
         })
     }
-}
 
-impl Pop3Client<Pop3AuthorizationState> {
-    pub fn login(mut self, username: &str, password: &str) -> Result<Pop3Client<Pop3TransactionState>, LoginError> {
-        self.invoke(&format!("USER {username}"))?;
-        self.read_response()?;
-        self.invoke(&format!("PASS {password}"))?;
-        self.read_response()?;
+    fn invoke(&mut self, command: &str) -> Result<usize, String> {
+        Ok(self.stream.write(format!("{command}\r\n").as_bytes()).map_err(|err| err.to_string())?)
+    }
 
-        let r: MaybeUninit<StreamOwned<ClientConnection, TcpStream>> = MaybeUninit::uninit();
-        // we consume the current client, so as long as we don't do anything with tls after this call this should be OK
-        let stream = mem::replace(&mut self.stream, unsafe { r.assume_init() });
-        let _ = ManuallyDrop::new(self); // do have to avoid drop, which would use the stream
+    fn read_response(&mut self) -> Result<String, String> {
+        read_response(&mut self.stream)
+    }
 
-        Ok(Pop3Client {
-            stream,
-            type_state: Default::default(),
-        })
+    fn read_multi_response(&mut self) -> Result<String, String> {
+        read_multi_response(&mut self.stream)
     }
 }
 
-impl Pop3Client<Pop3ConnectingState> {
-    pub fn connect(Pop3Connection { host, port }: Pop3Connection) -> Result<Pop3Client<Pop3AuthorizationState>, ConnectionError> {
+pub trait Pop3ClientBuilderState {}
+
+pub struct Pop3ClientBuilderCredsUsername {}
+pub struct Pop3ClientBuilderCredsPassword {}
+pub struct Pop3ClientBuilderConnect {}
+
+impl Pop3ClientBuilderState for Pop3ClientBuilderCredsUsername {}
+impl Pop3ClientBuilderState for Pop3ClientBuilderCredsPassword {}
+impl Pop3ClientBuilderState for Pop3ClientBuilderConnect {}
+
+pub struct Pop3ClientBuilder<T: Pop3ClientBuilderState> {
+    host: Option<String>,
+    port: Option<u16>,
+    username: Option<String>,
+    password: Option<String>,
+    type_state: PhantomData<T>,
+}
+
+impl Pop3ClientBuilder<Pop3ClientBuilderCredsUsername> {
+    pub fn username(self, user: &str) -> Pop3ClientBuilder<Pop3ClientBuilderCredsPassword> {
+        Pop3ClientBuilder {
+            host: self.host,
+            port: self.port,
+            username: Some(user.to_string()),
+            password: self.password,
+            type_state: Default::default(),
+        }
+    }
+
+    pub fn no_login(self) -> Pop3ClientBuilder<Pop3ClientBuilderConnect> {
+        Pop3ClientBuilder {
+            host: self.host,
+            port: self.port,
+            username: None,
+            password: None,
+            type_state: Default::default(),
+        }
+    }
+}
+
+impl Pop3ClientBuilder<Pop3ClientBuilderCredsPassword> {
+    pub fn password(self, password: &str) -> Pop3ClientBuilder<Pop3ClientBuilderConnect> {
+        Pop3ClientBuilder {
+            host: self.host,
+            port: self.port,
+            username: self.username,
+            password: Some(password.to_string()),
+            type_state: Default::default(),
+        }
+    }
+}
+
+impl Pop3ClientBuilder<Pop3ClientBuilderConnect> {
+    pub fn connect(self, Pop3Connection { host, port }: Pop3Connection) -> Result<Pop3Client, ConnectionError> {
         let config = create_rustls_config()?;
         let server_name = host.to_string().try_into()?;
         let connection = ClientConnection::new(Arc::new(config), server_name)?;
         let tcp_stream = TcpStream::connect(format!("{}:{}", host, port))?;
-        let mut stream = StreamOwned::new(connection, tcp_stream);
+        let stream = StreamOwned::new(connection, tcp_stream);
 
-        match read_response(&mut stream) {
-            Ok(_) => {
-                Ok(Pop3Client {
-                    stream,
-                    type_state: Default::default(),
-                })
-            }
-            Err(_) => {
-                return Err(ConnectionError {
-                    message: format!("POP3 server for {} is *not* ready", host),
-                });
-            }
+        let mut client = Pop3Client {
+            stream,
+        };
+
+        client.read_response()?;
+
+        // if the client was created with a username and password, we need to login
+        if let (Some(user), Some(pass)) = (self.username, self.password) {
+            client.invoke(&format!("USER {user}"))?;
+            client.read_response()?;
+            client.invoke(&format!("PASS {pass}"))?;
+            client.read_response()?;
         }
+
+        Ok(client)
     }
 }
 

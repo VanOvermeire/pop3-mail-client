@@ -66,8 +66,6 @@ impl From<InvalidDnsNameError> for ConnectionError {
     }
 }
 
-impl_err_with_from_str!(LoginError);
-
 impl_err_with_from_str!(StatError);
 
 impl From<ParseIntError> for StatError {
