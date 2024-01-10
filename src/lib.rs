@@ -62,6 +62,22 @@ impl Pop3Client {
         Ok(response.try_into()?)
     }
 
+    /// List the last x messages
+    pub fn list_last(&mut self, number_of_messages: i32) -> Result<ListResponse, ListError> {
+        self.invoke(&format!("LIST"))?;
+        let response = self.read_multi_response()?;
+        let response: ListResponse = response.try_into()?;
+        let last_ten = response.messages
+            .into_iter()
+            .rev()
+            .take(number_of_messages as usize)
+            .rev()
+            .collect();
+        Ok(ListResponse {
+            messages: last_ten,
+        })
+    }
+
     /// Retrieve as string retrieves the content of the message as a string
     pub fn retrieve_as_string(&mut self, message_id: i32) -> Result<RetrieveResponse, RetrieveError> {
         self.invoke(&format!("RETR {message_id}"))?;
@@ -72,11 +88,31 @@ impl Pop3Client {
         })
     }
 
+    /// Retrieve the content of the last message as a string
+    pub fn retrieve_last_as_string(&mut self) -> Result<RetrieveResponse, RetrieveError> {
+        let last = self.list()?;
+        let last_message = last.messages.last().ok_or(RetrieveError {
+            message: "no messages available".to_string(),
+        })?;
+        self.invoke(&format!("RETR {}", last_message.message_id))?;
+        let response = self.read_multi_response()?;
+        Ok(RetrieveResponse {
+            message_id: -1,
+            data: response,
+        })
+    }
+
     /// Retrieve the content of the message and pass it into a writer
     pub fn retrieve(&mut self, message_id: i32, writer: &mut impl Write) -> Result<(), RetrieveError> {
-        self.invoke(&format!("RETR {message_id}"))?;
-        let response = self.read_multi_response()?;
-        writer.write(response.as_bytes())?;
+        let as_string = self.retrieve_as_string(message_id)?;
+        writer.write(as_string.data.as_bytes())?;
+        Ok(())
+    }
+
+    /// Retrieve the content of the last message and pass it into a writer
+    pub fn retrieve_last(&mut self, writer: &mut impl Write) -> Result<(), RetrieveError> {
+        let as_string = self.retrieve_last_as_string()?;
+        writer.write(as_string.data.as_bytes())?;
         Ok(())
     }
 

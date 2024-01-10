@@ -1,5 +1,6 @@
 use crate::errors::{ListError, StatError, UIDLError};
 
+/// StatResponse is the number of messages and total size
 #[derive(Debug)]
 pub struct StatResponse {
     pub number_of_message: i32,
@@ -28,6 +29,7 @@ impl TryFrom<String> for StatResponse {
     }
 }
 
+/// ListResponse is a list of messages
 #[derive(Debug)]
 pub struct ListResponse {
     pub messages: Vec<ItemResponse>,
@@ -49,6 +51,7 @@ impl TryFrom<String> for ListResponse {
     }
 }
 
+/// ItemResponse is the id and size of a message
 #[derive(Debug)]
 pub struct ItemResponse {
     pub message_id: i32,
@@ -77,12 +80,14 @@ impl TryFrom<String> for ItemResponse {
     }
 }
 
+/// RetrieveResponse is the content of a message and its id
 #[derive(Debug)]
 pub struct RetrieveResponse {
     pub message_id: i32,
     pub data: String,
 }
 
+/// UIDLResponse is a list of messages with their message id and unique id
 #[derive(Debug)]
 pub struct UIDLResponse {
     pub messages: Vec<UIDLItem>,
@@ -104,6 +109,7 @@ impl TryFrom<String> for UIDLResponse {
     }
 }
 
+/// UIDLItem is the id and unique id of a message
 #[derive(Debug)]
 pub struct UIDLItem {
     pub message_id: i32,
@@ -132,6 +138,7 @@ impl TryFrom<String> for UIDLItem {
     }
 }
 
+/// TopResponse is the id of the message, the number of lines that top had to return, and the data of those lines
 #[derive(Debug)]
 pub struct TopResponse {
     pub message_id: i32,

@@ -153,6 +153,14 @@ impl From<std::io::Error> for RetrieveError {
     }
 }
 
+impl From<ListError> for RetrieveError {
+    fn from(value: ListError) -> Self {
+        RetrieveError {
+            message: value.message,
+        }
+    }
+}
+
 impl_err_with_from_str!(ResetError);
 
 impl_err_with_from_str!(DeleteError);
