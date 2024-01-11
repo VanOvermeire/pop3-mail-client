@@ -8,7 +8,7 @@ license = "MIT"
 homepage = "https://github.com/VanOvermeire/pop3-mail-client"
 repository = "https://github.com/VanOvermeire/pop3-mail-client"
 readme = "README.md"
-keywords = ["POP3", "Rust"]
+keywords = ["POP3", "Email", "Rust"]
 
 [dependencies]
 rustls-native-certs = "0.7.0"
