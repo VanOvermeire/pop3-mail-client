@@ -26,6 +26,8 @@ Create the client using its builder and starting calling the client methods.
 use pop3_mail_client::{Pop3Connection, Pop3Client, Pop3Error};
 
 fn main() -> Result<(), Pop3Error> {
+    // create a client that connects to Microsoft outlook
+    // there is also a helper for gmail, and a `new` method for connecting to any server
     let mut connection = Pop3Client::builder()
         .username("test@gmail.com")
         .password("some-pass")
