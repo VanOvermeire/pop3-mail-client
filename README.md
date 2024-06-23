@@ -9,13 +9,13 @@ Despite this, based on very limited testing, performance is about the same as th
 
 ## Installation
 
-`cargo install pop3_mail_client`
+`cargo install pop3-mail-client`
 
 Or add this to `Cargo.toml`:
 
 ```toml
 [dependencies]
-pop3_mail_client = "0.1.0"
+pop3-mail-client = "0.1.0"
 ```
 
 ## Examples
